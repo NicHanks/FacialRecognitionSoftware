@@ -1,3 +1,6 @@
+import os
+os.makedirs("images", exist_ok=True)  # ensure images/ exists
+
 # Facial Recognition — LFW, 60/20/20 split, two models, full metrics
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,7 +52,7 @@ logreg.fit(np.vstack([X_train_s.toarray() if hasattr(X_train_s, "toarray") else 
 tree.fit(np.vstack([X_train, X_val]), np.hstack([y_train, y_val]))
 
 # 6) Evaluate on test set
-def evaluate(model, X_eval, y_eval, name, scaled=False):
+def evaluate(model, X_eval, y_eval, name, scaled=False, save_name=None):
     X_in = X_eval if not scaled else scaler.transform(X_eval)
     y_pred = model.predict(X_in if not hasattr(X_in, "toarray") else X_in.toarray())
     print(f"\n=== {name}: classification report (macro & weighted F1 highlighted) ===")
@@ -59,10 +62,17 @@ def evaluate(model, X_eval, y_eval, name, scaled=False):
     disp.plot(xticks_rotation=45)
     plt.title(f"{name} — Confusion Matrix")
     plt.tight_layout()
+    if save_name:
+        plt.savefig(f"images/{save_name}.png", dpi=150)
     plt.show()
 
-evaluate(logreg, X_test, y_test, "Logistic Regression (OvR)", scaled=True)
-evaluate(tree,   X_test, y_test, "Decision Tree", scaled=False)
+
+# evaluate(logreg, X_test, y_test, "Logistic Regression (OvR)", scaled=True)
+# evaluate(tree,   X_test, y_test, "Decision Tree", scaled=False)
+# Confusion Matrices
+evaluate(logreg, X_test, y_test, "Logistic Regression (OvR)", scaled=True, save_name="confusion_logreg")
+evaluate(tree,   X_test, y_test, "Decision Tree", scaled=False, save_name="confusion_tree")
+
 
 # 7) Optional: ROC curves (one-vs-rest)
 y_test_bin = label_binarize(y_test, classes=list(range(n_classes)))
@@ -71,7 +81,7 @@ lr_scores = logreg.decision_function(scaler.transform(X_test))
 # For tree, use predict_proba
 tr_scores = tree.predict_proba(X_test)
 
-def plot_roc(scores, y_bin, name):
+def plot_roc(scores, y_bin, name, save_name=None):
     plt.figure()
     for i in range(y_bin.shape[1]):
         fpr, tpr, _ = roc_curve(y_bin[:, i], scores[:, i])
@@ -83,8 +93,14 @@ def plot_roc(scores, y_bin, name):
     plt.title(f"{name} — One-vs-Rest ROC")
     plt.legend(loc="lower right", fontsize=8)
     plt.tight_layout()
+    if save_name:
+        plt.savefig(f"images/{save_name}.png", dpi=150)
     plt.show()
 
-plot_roc(lr_scores, y_test_bin, "Logistic Regression")
-plot_roc(tr_scores, y_test_bin, "Decision Tree")
+
+# plot_roc(lr_scores, y_test_bin, "Logistic Regression")
+# plot_roc(tr_scores, y_test_bin, "Decision Tree")
+# ROC Curves
+plot_roc(lr_scores, y_test_bin, "Logistic Regression", save_name="roc_logreg")
+plot_roc(tr_scores, y_test_bin, "Decision Tree", save_name="roc_tree")
 # pip install opencv-python face_recognition numpy Pillow
